@@ -1,4 +1,4 @@
-# esp-emu
+# Emulator for ESP RISC-V Series SoCs (Beta)
 
 A Rust-based RISC-V emulator that runs ESP32-C3, ESP32-C6, ESP32-P4, and ESP32-S31 firmware binaries — CPU, memory, WiFi, BLE, Thread, Ethernet, crypto, and more. This repo distributes the installer, prebuilt release binaries, user-facing docs, and helper tools.
 
@@ -7,7 +7,7 @@ A Rust-based RISC-V emulator that runs ESP32-C3, ESP32-C6, ESP32-P4, and ESP32-S
 One-liner (Linux x86_64 / macOS Apple Silicon):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mahavirj/esp-emulator/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/espressif/esp-emulator/main/install.sh | sh
 ```
 
 This downloads the latest binary to `$HOME/.local/bin/esp-emu`. If `~/.local/bin` is not on your `PATH`, the installer prints the `export PATH=...` line to add.
@@ -15,13 +15,13 @@ This downloads the latest binary to `$HOME/.local/bin/esp-emu`. If `~/.local/bin
 Pin a specific version:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mahavirj/esp-emulator/main/install.sh | sh -s -- --version 0.30.0
+curl -fsSL https://raw.githubusercontent.com/espressif/esp-emulator/main/install.sh | sh -s -- --version 0.30.0
 ```
 
 Other options: `--check` (print latest, no install), `--bin-dir DIR`, `--force`, `--quiet`. Full help:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mahavirj/esp-emulator/main/install.sh | sh -s -- --help
+curl -fsSL https://raw.githubusercontent.com/espressif/esp-emulator/main/install.sh | sh -s -- --help
 ```
 
 ## Updating
@@ -47,7 +47,7 @@ esp-emu --version        # print currently installed version
 - **Crypto**: AES (ECB/CBC/OFB/CTR/CFB), SHA (1/224/256), RSA, ECC, HMAC-SHA256, Digital Signature, XTS-AES flash encryption, ECDSA (P-256/P-384, P4), Key Manager + HUK Generator (P4) — drives flash / HMAC / DS / ECDSA key sourcing for `CONFIG_SECURE_FLASH_ENCRYPTION_KEY_SOURCE_KEY_MGR`
 - **Peripherals**: UART, USB Serial JTAG, GPIO, system timer, timer groups, interrupt controllers (PLIC for C3/C6, CLIC for P4), eFuse, SPI flash, GDMA
 - **esptool / espefuse over `socket://`**: a `--uart-tcp HOST:PORT` bridge plus `--strap-mode 0x02` (UART download) lets esptool, espefuse, and `idf.py flash` drive the running emulator over TCP, matching the QEMU-Espressif workflow. See [esptool / espefuse](#esptool--espefuse-over-socket).
-- **Chips**: ESP32-C3, ESP32-C6, and ESP32-P4 with per-chip memory maps and interrupt controllers
+- **Chips**: ESP32-C3, ESP32-C6, and ESP32-P4 with per-chip memory maps and interrupt controllers (additional RISC-V targets are in early bring-up)
 - **WASM**: Browser-based emulation via WebAssembly with JavaScript API
 - **ROM stubs**: Intercepts key ROM functions (printf, UART, delay, WiFi TX) instead of emulating full ROM
 
@@ -381,16 +381,18 @@ esp-emu \
   --uart-tcp 127.0.0.1:5555
 ```
 
-In another shell, point esptool/espefuse at the socket. The `--no-stub --before no-reset --after no-reset` flags are required (see [Caveats](#caveats)):
+In another shell, point esptool/espefuse at the socket. Both esptool's default
+**stub-flasher mode** and `--no-stub` (ROM-loader) mode work; only `--before
+no-reset --after no-reset` are required (see [Caveats](#caveats)):
 
 ```sh
-# Identify the chip / read flash JEDEC
+# Identify the chip / read flash JEDEC (stub mode — esptool's default)
 esptool.py -p socket://localhost:5555 --chip esp32c3 \
-  --no-stub --before no-reset --after no-reset flash_id
+  --before no-reset --after no-reset flash_id
 
 # Write part of flash
 esptool.py -p socket://localhost:5555 --chip esp32c3 \
-  --no-stub --before no-reset --after no-reset \
+  --before no-reset --after no-reset \
   write_flash 0x100000 build/myapp.bin
 
 # Burn an eFuse (custom MAC)
@@ -418,12 +420,21 @@ End-to-end verified on **C3, C6, and P4**:
 | `espefuse get-custom-mac`   | ✅ | ✅ | ✅ |
 | `espefuse burn-custom-mac`  | ✅ | ✅ | ✅ |
 
-eFuse burns persist back to the file passed via `--efuse <path>` on graceful exit (timeout, Ctrl+C, or `exit-on` match). Flash writes persist with `--save-state`.
+All commands work in both **stub mode** (esptool uploads its RAM flasher — the
+default) and **`--no-stub` ROM mode**. On P4, stub-mode `write-flash` /
+`verify-flash` / `erase-region` are verified byte-accurate (including
+incompressible payloads). eFuse burns persist back to the file passed via
+`--efuse <path>` on graceful exit (timeout, Ctrl+C, or `exit-on` match). Flash
+writes persist with `--save-state`.
+
+The same flash and eFuse flows also work on newer RISC-V targets; pass
+`--strap-mode 0x02` exactly as on the other chips and the emulator handles any
+chip-specific strap decoding internally.
 
 ### Caveats
 
-- **`--no-stub` is required.** esptool's RAM-uploaded stub flasher is not yet wired through; ROM-mode commands work for everything in the table above and are slightly slower. Same caveat applies to QEMU-Espressif on C3.
 - **`--before no-reset --after no-reset` are required.** RTS isn't transmissible over a TCP socket, so esptool can't auto-reset the target. To reboot the emulated chip, restart the `esp-emu` process.
+- **`--no-stub` is an optional fallback.** Stub mode is the default and works for everything above; `--no-stub` uses the ROM loader instead (slightly slower, no RAM upload) if you want to avoid the stub.
 
 ## Building Firmware Images
 
@@ -438,7 +449,7 @@ idf.py merge-bin -o build/merged_flash.bin
 
 ## Releases
 
-Binary tarballs (single-file artifacts containing only the `esp-emu` executable) are published as [GitHub Releases](https://github.com/mahavirj/esp-emulator/releases). Each release ships three assets:
+Binary tarballs (single-file artifacts containing only the `esp-emu` executable) are published as [GitHub Releases](https://github.com/espressif/esp-emulator/releases). Each release ships three assets:
 
 - `esp-emu-<version>-x86_64-unknown-linux-gnu.tar.gz` — Linux x86_64 native
 - `esp-emu-<version>-aarch64-apple-darwin.tar.gz` — macOS Apple Silicon native
@@ -461,14 +472,14 @@ Companion scripts live at [`tools/`](tools/):
 
 - `setup-tap.sh` — create the `tap0` device for TAP networking on Linux
 - `bumble_test.py` — virtual BLE controller (Google Bumble) over TCP for HCI testing
-- `ws-net-proxy.py` / `ws-net-proxy.rs` — WebSocket↔raw-Ethernet bridge for the browser build
+- `ws-net-proxy.py` — WebSocket↔raw-Ethernet bridge for the browser build
 - `vhci_bridge.py` — Linux VHCI HCI bridge
 
 ## Manual install (without install.sh)
 
 ```sh
 # Download the asset for your platform from
-# https://github.com/mahavirj/esp-emulator/releases/latest
+# https://github.com/espressif/esp-emulator/releases/latest
 tar -xzf esp-emu-<version>-<platform>.tar.gz
 cp esp-emu-<version>-<platform>/esp-emu ~/.local/bin/
 ~/.local/bin/esp-emu --help

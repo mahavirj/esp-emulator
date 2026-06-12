@@ -38,8 +38,7 @@ syscall.
   - Add it as a managed component to your project, or
   - Clone `https://github.com/espressif/esp-hosted-mcu` and follow its
     `examples/` README.
-- ESP-EMU built: `cargo build --release`. The emulator binary is at
-  `./target/release/esp-emu`.
+- `esp-emu` installed and on your `PATH`
 
 ## Build the firmware images
 
@@ -92,7 +91,7 @@ host connects.
 
 ```sh
 rm -f /tmp/hosted_demo.sock
-RUST_LOG=info ./target/release/esp-emu \
+RUST_LOG=info esp-emu \
   --chip esp32c6 \
   --firmware /tmp/hosted_c6_build/build/merged_flash.bin \
   --elf /tmp/hosted_c6_build/build/network_adapter.elf \
@@ -109,7 +108,7 @@ behalf.
 ### 2. Start the P4 host (in a second terminal, ~2 s later)
 
 ```sh
-RUST_LOG=info ./target/release/esp-emu \
+RUST_LOG=info esp-emu \
   --chip esp32p4 \
   --firmware /tmp/hosted_p4_build/build/merged_flash.bin \
   --elf /tmp/hosted_p4_build/build/peer_data_example.elf \

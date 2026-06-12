@@ -41,7 +41,7 @@ By default, the browser emulator runs in internal-only mode: WiFi association an
 ```
 Browser (WASM emulator)
   ↕ WebSocket (binary Ethernet frames)
-ws-net-proxy (Rust or Python)
+ws-net-proxy.py
   ↕ read/write
 TAP interface (tap0)
   ↕ IP forwarding + NAT
@@ -60,23 +60,13 @@ This creates `tap0` with IP `192.168.4.1/24`, enables IP forwarding, and adds ip
 
 #### 2. Start the WebSocket proxy
 
-**Rust proxy** (recommended — lower latency):
-
-```sh
-# Build (one-time)
-cargo build --release --features ws-proxy --bin ws-net-proxy
-
-# Run
-./target/release/ws-net-proxy
-```
-
-**Python proxy** (no build step, requires `pip install websockets`):
+Run the Python proxy (requires `pip install websockets`):
 
 ```sh
 python3 tools/ws-net-proxy.py
 ```
 
-Both listen on `ws://localhost:8765` by default. Use `--port` to change.
+It listens on `ws://localhost:8765` by default. Use `--port` to change.
 
 #### 3. Connect from the browser
 
@@ -132,7 +122,7 @@ These are applied when firmware is loaded. To change them, reload the firmware.
 - The fields must be set **before** clicking Load Firmware
 
 ### Network timeout after WiFi connects
-- Verify the WebSocket proxy is running: `./target/release/ws-net-proxy`
+- Verify the WebSocket proxy is running: `python3 tools/ws-net-proxy.py`
 - Verify TAP is up: `ip addr show tap0`
 - Click **Connect Net** in the browser before clicking Run
 - Check proxy output for "Client connected" message
@@ -153,6 +143,5 @@ www/
 
 tools/
 ├── setup-tap.sh        # Create/teardown TAP interface with NAT
-├── ws-net-proxy.rs     # Rust WebSocket-to-TAP proxy (build with --features ws-proxy)
 └── ws-net-proxy.py     # Python WebSocket-to-TAP proxy (requires websockets package)
 ```

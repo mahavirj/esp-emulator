@@ -199,6 +199,20 @@ async def main():
     bluez_controller.random_address = hci.Address(
         args.bluez_address, hci.Address.PUBLIC_DEVICE_ADDRESS
     )
+    # Workaround for upstream Bumble bug google/bumble#841: Bumble's controller
+    # always emits the legacy HCI_LE_Connection_Complete event, but per BT Core
+    # spec v6.0 a controller MUST send only HCI_LE_Enhanced_Connection_Complete
+    # (0x0A) once the host has unmasked it. Modern kernels unmask it whenever the
+    # controller reports LL Privacy or Extended Advertising
+    # (use_enhanced_conn_complete() = ext_adv_capable() || ll_privacy_capable(),
+    # ll_privacy_capable = le_features[0] & HCI_LE_LL_PRIVACY). So on Ubuntu 26.04
+    # (BlueZ 5.85 / kernel 7.x) the kernel expects the enhanced event, drops
+    # Bumble's legacy one, and the LE connection completes at the HCI layer but
+    # BlueZ never registers it — commissioning hangs until chip-tool's timeout.
+    # Clearing LL_PRIVACY (unused by this software bridge — fixed public
+    # addresses, no RPA) keeps the kernel on the legacy path Bumble emits. Works
+    # on old and new BlueZ/kernels; remove once google/bumble#841 is fixed.
+    bluez_controller.le_features &= ~hci.LeFeatureMask.LL_PRIVACY
     if hci_index is not None:
         print(f"[+] VHCI adapter registered as hci{hci_index}")
         print(f"    Use: chip-tool pairing ble-wifi ... --ble-controller {hci_index}")

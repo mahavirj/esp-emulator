@@ -71,11 +71,9 @@ sudo ip link set tap0 up
 Use TAP when you need the guest reachable on the LAN, want `tcpdump` on the
 wire, or are running multiple emulators talking to each other.
 
-### Build ESP-EMU
+### Install ESP-EMU
 
-```bash
-cargo build --release
-```
+Make sure `esp-emu` is installed and on your `PATH`.
 
 ## Building Matter firmware
 

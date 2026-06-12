@@ -62,11 +62,9 @@ echo 'KERNEL=="vhci", MODE="0666"' | sudo tee /etc/udev/rules.d/99-vhci.rules
 sudo udevadm trigger
 ```
 
-### Build ESP-EMU
+### Install ESP-EMU
 
-```bash
-cargo build --release
-```
+Make sure `esp-emu` is installed and on your `PATH`.
 
 ## Building RainMaker firmware
 
@@ -119,7 +117,7 @@ hci1: Type: Primary  Bus: Virtual
 ### Step 2: Start ESP-EMU
 
 ```bash
-./target/release/esp-emu \
+esp-emu \
   --chip esp32c3 \
   --firmware build/merged_flash.bin \
   --elf build/switch.elf \

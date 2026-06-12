@@ -33,7 +33,7 @@ Overhead: a tiny, localhost-bound UDP socket per emulator instance.
 - ESP-IDF environment sourced (`source /path/to/esp-idf/export.sh`)
 - Target chip: `esp32c6` (the only chip with both Wi-Fi and 802.15.4
   currently supported by the emulator)
-- ESP-EMU built: `cargo build --release`
+- `esp-emu` installed and on your `PATH`
 
 ## Single-node `ot_cli`
 

@@ -2,7 +2,7 @@
 # esp-emu installer / updater (GitHub Releases edition)
 #
 # Usage (one-liner):
-#   curl -fsSL https://raw.githubusercontent.com/mahavirj/esp-emulator/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/espressif/esp-emulator/main/install.sh | sh
 #
 # Usage (with options):
 #   curl -fsSL https://.../install.sh | sh -s -- --version 0.30.0
@@ -14,7 +14,7 @@
 #
 # Drops the esp-emu binary at $HOME/.local/bin/esp-emu by default. The tarball
 # contains only the binary; docs and helper scripts live alongside install.sh
-# in the public release mirror at github.com/mahavirj/esp-emulator.
+# in the public release mirror at github.com/espressif/esp-emulator.
 #
 # Requires: curl, tar, sha256sum (or shasum -a 256). No JSON parser needed —
 # the latest version is resolved via GitHub's /releases/latest → /releases/tag/vX
@@ -22,7 +22,7 @@
 
 set -eu
 
-DEFAULT_REPO="mahavirj/esp-emulator"
+DEFAULT_REPO="espressif/esp-emulator"
 REPO="${ESP_EMU_REPO:-$DEFAULT_REPO}"
 BIN_DIR="${ESP_EMU_BIN_DIR:-$HOME/.local/bin}"
 
